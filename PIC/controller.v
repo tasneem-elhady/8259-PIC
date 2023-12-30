@@ -1,10 +1,10 @@
 module controller (
-    input write_initial_command_word_1_reset,
-    input write_initial_command_word_2_4,
-    input write_operation_control_word_1,
-    input write_operation_control_word_2,
-    input write_operation_control_word_3,
-    input clk,
+    input         write_initial_command_word_1_reset,
+    input         write_initial_command_word_2_4,
+    input         write_operation_control_word_1,
+    input         write_operation_control_word_2,
+    input         write_operation_control_word_3,
+    // input clk,
     input [7:0]   highest_level_in_service,
     input [7:0]   interrupt,
     input         interrupt_acknowledge_n,
@@ -24,6 +24,9 @@ module controller (
     output reg      latch_in_service,
     output reg            out_control_logic_data,
     output reg  [7:0]   control_logic_data,
+
+    output reg           data_bus_io,
+
 
     inout [7:0] internal_data_bus
 );
@@ -49,7 +52,7 @@ module controller (
     localparam WRITE_ICW4 = 2'b11;
 
 
-    always begin
+    always @(*) begin
         if (write_initial_command_word_1_reset == 1'b1)
             next_command_state <= WRITE_ICW2;
         else if (write_initial_command_word_2_4 == 1'b1) begin
@@ -80,7 +83,7 @@ module controller (
             next_command_state <= command_state;
     end
 
-    always @(negedge clk) begin
+    always@() /*@(negedge clk)*/   begin
             command_state <= next_command_state;
     end
 
@@ -95,7 +98,7 @@ module controller (
 
 
     // LTIM
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             level_or_edge_triggered_config <= internal_data_bus[3];
         else
@@ -103,7 +106,7 @@ module controller (
     end
 
     // SNGL
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             single_or_cascade_config <= internal_data_bus[1];
         else
@@ -111,7 +114,7 @@ module controller (
     end
 
     // IC4
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             set_icw4_config <= internal_data_bus[0];
         else
@@ -121,7 +124,7 @@ module controller (
     //
     // Initialization command word 2
     // T7-T3 (8086, 8088)
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             interrupt_vector_address[7:3] <= 5'b00000;
         else if (write_initial_command_word_2 == 1'b1)
@@ -133,7 +136,7 @@ module controller (
     //
     // Initialization command word 3
     // S7-S0 (MASTER) or ID2-ID0 (SLAVE)
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             cascade_device_config <= 8'b00000000;
         else if (write_initial_command_word_3 == 1'b1)
@@ -144,7 +147,7 @@ module controller (
 
 
     // AEOI
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             auto_eoi_config <= 1'b0;
         else if (write_initial_command_word_4 == 1'b1)
@@ -162,7 +165,7 @@ module controller (
 
     // Detect ACK edge
         reg    prev_interrupt_acknowledge_n;
-        always@(negedge clk,posedge write_initial_command_word_1_reset) begin
+        always@(*)/*@(negedge clk,posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset)
             prev_interrupt_acknowledge_n <= 1'b1;
         else
@@ -172,7 +175,7 @@ module controller (
     wire    pedge_interrupt_acknowledge = ~prev_interrupt_acknowledge_n &  interrupt_acknowledge_n;
 
     // State machine
-    always begin
+    always@(*) begin
         case (control_state)
             CTL_READY: begin
                 //*****
@@ -200,14 +203,14 @@ module controller (
             end
         endcase
     end
-    always@(negedge clk,posedge write_initial_command_word_1_reset) begin
+    always@(*)/*@(negedge clk,posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             control_state <= CTL_READY;
         else
             control_state <= next_control_state;
     end
     // Latch in service register signal*************
-    always begin
+    always@(*) begin
         if (write_initial_command_word_1_reset == 1'b1)
             latch_in_service = 1'b0;
         else if ((control_state == CTL_READY))
@@ -222,7 +225,7 @@ module controller (
     // Operation control word 1
     //
     // IMR
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             interrupt_mask <= 8'b11111111;
         else if ((write_operation_control_word_1_registers == 1'b1)) //&& (special_mask_mode == 1'b0))
@@ -233,7 +236,7 @@ module controller (
 // Operation control word 2
     //
     // End of interrupt
-    always begin/***@ **/
+    always@(*) begin/***@ **/
         if (write_initial_command_word_1_reset  == 1'b1)
             end_of_interrupt = 8'b11111111;
         else if ((auto_eoi_config == 1'b1) && (end_of_acknowledge_sequence == 1'b1))
@@ -241,7 +244,7 @@ module controller (
         else if (write_operation_control_word_2 == 1'b1) begin
             case (internal_data_bus[6:5])//*******
                 2'b01:   end_of_interrupt = highest_level_in_service;
-                2'b11:   end_of_interrupt = num2bit(internal_data_bus[2:0]);/*****num**/
+                2'b11:   end_of_interrupt = num2bit(internal_data_bus[2:0]);/****num*/
                 default: end_of_interrupt = 8'b00000000;
             endcase
         end
@@ -249,7 +252,7 @@ module controller (
             end_of_interrupt = 8'b00000000;
     end
     // Auto rotate mode
-    always@(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*)/*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             auto_rotate_mode <= 1'b0;
         else if (write_operation_control_word_2 == 1'b1) begin
@@ -263,7 +266,7 @@ module controller (
             auto_rotate_mode <= auto_rotate_mode;
     end
      // Rotate
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             priority_rotate <= 3'b111;
         else if ((auto_rotate_mode == 1'b1) && (end_of_acknowledge_sequence == 1'b1))
@@ -280,7 +283,7 @@ module controller (
     end
     // Operation control word 3
     // RR/RIS
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1) begin
             enable_read_register     <= 1'b1;
             read_register_isr_or_irr <= 1'b0;//IRR
@@ -296,7 +299,7 @@ module controller (
     end
     // Interrupt control signals
     // INT
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             interrupt_to_cpu <= 1'b0;
         else if (interrupt != 8'b00000000)
@@ -307,7 +310,7 @@ module controller (
             interrupt_to_cpu <= interrupt_to_cpu;
     end
     // freeze
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (next_control_state == CTL_READY)
             freeze <= 1'b0;
         else
@@ -315,7 +318,7 @@ module controller (
     end
 
     // clear_interrupt_request
-    always begin
+    always@(*) begin
         if (write_initial_command_word_1_reset == 1'b1)
             clear_interrupt_request = 8'b11111111;
         else if (latch_in_service == 1'b0)//****
@@ -324,7 +327,7 @@ module controller (
             clear_interrupt_request = interrupt;
     end
     // interrupt buffer
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             acknowledge_interrupt <= 8'b00000000;
         else if (end_of_acknowledge_sequence)
@@ -336,7 +339,7 @@ module controller (
     end
      // interrupt buffer
     reg  [7:0]   interrupt_when_ack1;
-    always @(negedge clk, posedge write_initial_command_word_1_reset) begin
+    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             interrupt_when_ack1 <= 8'b00000000;
         else if (control_state == ACK1)/******/
@@ -346,7 +349,7 @@ module controller (
     end
     
     // control_logic_data
-    always begin
+    always@(*) begin
         if (interrupt_acknowledge_n == 1'b0) begin
             // Acknowledge
             case (control_state)
