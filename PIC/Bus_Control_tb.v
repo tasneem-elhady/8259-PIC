@@ -1,6 +1,3 @@
-`define TB_CYCLE        20
-`define TB_FINISH_COUNT 20000
-
 module Bus_Control_tb();
 
 
@@ -128,5 +125,3 @@ module Bus_Control_tb();
 `endif
     end
 endmodule
-
-
