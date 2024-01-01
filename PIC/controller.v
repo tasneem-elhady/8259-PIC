@@ -25,11 +25,13 @@ module controller (
     output reg            out_control_logic_data,
     output reg  [7:0]   control_logic_data,
 
-    output reg           data_bus_io,
+    // output reg           data_bus_io,
 
 
-    inout [7:0] internal_data_bus
+    input [7:0] internal_data_bus
 );
+
+common c();
 // ISR
     reg [7:0] interrupt_vector_address;
 
@@ -39,7 +41,7 @@ module controller (
     reg set_icw4_config;
     reg auto_eoi_config; 
     reg auto_rotate_mode;
-    reg [7:0] cascade_device_config;
+    // reg [7:0] cascade_device_config;
     reg [7:0] acknowledge_interrupt;
 
 //State machine that write ICWs
@@ -83,7 +85,7 @@ module controller (
             next_command_state <= command_state;
     end
 
-    always@() /*@(negedge clk)*/   begin
+    always@(*) /*@(negedge clk*)*/   begin
             command_state <= next_command_state;
     end
 
@@ -133,17 +135,17 @@ module controller (
             interrupt_vector_address[7:3] <= interrupt_vector_address[7:3];
     end
 
-    //
-    // Initialization command word 3
-    // S7-S0 (MASTER) or ID2-ID0 (SLAVE)
-    always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
-        if (write_initial_command_word_1_reset == 1'b1)
-            cascade_device_config <= 8'b00000000;
-        else if (write_initial_command_word_3 == 1'b1)
-            cascade_device_config <= internal_data_bus;
-        else
-            cascade_device_config <= cascade_device_config;
-    end
+    // //
+    // // Initialization command word 3
+    // // S7-S0 (MASTER) or ID2-ID0 (SLAVE)
+    // always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
+    //     if (write_initial_command_word_1_reset == 1'b1)
+    //         cascade_device_config <= 8'b00000000;
+    //     else if (write_initial_command_word_3 == 1'b1)
+    //         cascade_device_config <= internal_data_bus;
+    //     else
+    //         cascade_device_config <= cascade_device_config;
+    // end
 
 
     // AEOI
@@ -155,6 +157,7 @@ module controller (
         else
             auto_eoi_config <= auto_eoi_config;
     end
+
      // State
     reg [1:0] control_state;
     reg [1:0] next_control_state;
@@ -209,6 +212,7 @@ module controller (
         else
             control_state <= next_control_state;
     end
+
     // Latch in service register signal*************
     always@(*) begin
         if (write_initial_command_word_1_reset == 1'b1)
@@ -220,10 +224,13 @@ module controller (
         else
             latch_in_service = (control_state == ACK2) & (cascade_slave_enable == 1'b1) & (nedge_interrupt_acknowledge == 1'b1);
     end
+
      // End of acknowledge sequence
+    //  control state is ack2 and next is ctl ready
     wire    end_of_acknowledge_sequence =   (control_state != CTL_READY) & (next_control_state == CTL_READY);
     // Operation control word 1
     //
+
     // IMR
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
@@ -244,13 +251,14 @@ module controller (
         else if (write_operation_control_word_2 == 1'b1) begin
             case (internal_data_bus[6:5])//*******
                 2'b01:   end_of_interrupt = highest_level_in_service;
-                2'b11:   end_of_interrupt = num2bit(internal_data_bus[2:0]);/****num*/
+                2'b11:   end_of_interrupt = c.num2bit(internal_data_bus[2:0]);/*****num**/
                 default: end_of_interrupt = 8'b00000000;
             endcase
         end
         else
             end_of_interrupt = 8'b00000000;
     end
+
     // Auto rotate mode
     always@(*)/*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
@@ -265,15 +273,16 @@ module controller (
         else
             auto_rotate_mode <= auto_rotate_mode;
     end
+
      // Rotate
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             priority_rotate <= 3'b111;
         else if ((auto_rotate_mode == 1'b1) && (end_of_acknowledge_sequence == 1'b1))
-            priority_rotate <= bit2num(acknowledge_interrupt);//3b
+            priority_rotate <= c.bit2num(acknowledge_interrupt);//3b
         else if (write_operation_control_word_2 == 1'b1) begin
             case (internal_data_bus[7:5])
-                3'b101:  priority_rotate <= bit2num(highest_level_in_service);
+                3'b101:  priority_rotate <= c.bit2num(highest_level_in_service);
                 3'b11?:  priority_rotate <= internal_data_bus[2:0];/******/
                 default: priority_rotate <= priority_rotate;
             endcase
@@ -281,6 +290,7 @@ module controller (
         else
             priority_rotate <= priority_rotate;
     end
+
     // Operation control word 3
     // RR/RIS
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
@@ -297,6 +307,7 @@ module controller (
             read_register_isr_or_irr <= read_register_isr_or_irr;
         end
     end
+
     // Interrupt control signals
     // INT
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
@@ -309,6 +320,7 @@ module controller (
         else
             interrupt_to_cpu <= interrupt_to_cpu;
     end
+
     // freeze
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (next_control_state == CTL_READY)
@@ -326,6 +338,7 @@ module controller (
         else
             clear_interrupt_request = interrupt;
     end
+
     // interrupt buffer
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
@@ -337,6 +350,7 @@ module controller (
         else
             acknowledge_interrupt <= acknowledge_interrupt;
     end
+    
      // interrupt buffer
     reg  [7:0]   interrupt_when_ack1;
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
@@ -354,33 +368,34 @@ module controller (
             // Acknowledge
             case (control_state)
                 CTL_READY: begin
-                    if (cascade_slave == 1'b0) begin
-                            out_control_logic_data = 1'b0;
-                            control_logic_data     = 8'b00000000;
-                    end
-                    else begin
+                    // if (cascade_slave == 1'b0) begin
+                            // out_control_logic_data = 1'b0;
+                            // control_logic_data     = 8'b00000000;
+                    // end
+                    // else begin
                         out_control_logic_data = 1'b0;
                         control_logic_data     = 8'b00000000;
-                    end
+                    // end
                 end
                 ACK1: begin
-                    if (cascade_slave == 1'b0) begin
-                            out_control_logic_data = 1'b0;
-                            control_logic_data     = 8'b00000000;
-                    end
-                    else begin
+                    // if (cascade_slave == 1'b0) begin
+                            // out_control_logic_data = 1'b0;
+                            // control_logic_data     = 8'b00000000;
+                    // end
+                    // else begin
                         out_control_logic_data = 1'b0;
                         control_logic_data     = 8'b00000000;
-                    end
+                    // end
                 end
                 ACK2: begin
                     if (cascade_output_ack_2_3 == 1'b1) begin
                         out_control_logic_data = 1'b1;
                         if (cascade_slave == 1'b1)
-                            control_logic_data[2:0] = bit2num(interrupt_when_ack1);
+                            control_logic_data[2:0] = c.bit2num(interrupt_when_ack1);
                         else
-                            control_logic_data[2:0] = bit2num(acknowledge_interrupt);
-                            control_logic_data = {interrupt_vector_address[10:6], control_logic_data[2:0]};
+                            control_logic_data[2:0] = c.bit2num(acknowledge_interrupt);
+
+                         control_logic_data = {interrupt_vector_address[7:3], control_logic_data[2:0]};
                     end
                     else begin
                         out_control_logic_data = 1'b0;
