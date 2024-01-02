@@ -73,32 +73,31 @@ reg   [7:0]   data_bus_reg;
     //
     task TASK_INIT();
     begin
-        chip_select_n   = 1'b0;
-      write_enable_n  = 1'b0;
-      read_enable_n   = 1'b1;
-      A0              = 1'b0;
-      data_bus_reg        = 8'b00010000;
-      data_bus_in     = 1'b1;
-            // # (20 * 2)
-    //     chip_select_n   = 1'b1;
+    //     chip_select_n   = 1'b0;
+    //   write_enable_n  = 1'b0;
+    //   read_enable_n   = 1'b1;
+    //   A0              = 1'b0;
+    //   data_bus_reg        = 8'b00010000;
+    //   data_bus_in     = 1'b1;
+    //         // # (20 * 2)
+    // //     chip_select_n   = 1'b1;
         
-    //     write_enable_n  = 1'b1;
-    //     A0         = 1'b0;
-    //     data_bus_reg     = 8'b00000000;
-    //     #(20 *2);
-        #(20* 0);
+    // //     write_enable_n  = 1'b1;
+    // //     A0         = 1'b0;
+    // //     data_bus_reg     = 8'b00000000;
+    // //     #(20 *2);
+    //     #(20* 0);
         
-        chip_select_n           = 1'b1;
-        read_enable_n           = 1'b1;
-        write_enable_n          = 1'b1;
-        A0                      = 1'b0;
-        data_bus_reg            = 8'b00000000;
+    //     chip_select_n           = 1'b1;
+        // read_enable_n           = 1'b1;
+    //     write_enable_n          = 1'b1;
+    //     A0                      = 1'b0;
+    //     data_bus_reg            = 8'b00000000;
         cascade_inout_reg       = 3'b000;
         slave_program_n         = 1'b0;
         interrupt_acknowledge_n = 1'b1;
         interrupt_request_pin   = 8'b00000000;
         data_bus_in = 1'b1;
-        #(20* 2);
     end
     endtask
 
@@ -128,7 +127,7 @@ reg   [7:0]   data_bus_reg;
         chip_select_n   = 1'b1;
         write_enable_n  = 1'b1;
         A0              = 1'b0;
-        data_bus_reg        = 8'b00000000;
+        // data_bus_reg    = 8'b00000000;
         #(20* 1);
     end
     endtask
@@ -191,18 +190,19 @@ reg   [7:0]   data_bus_reg;
     //
     task TASK_8086_NORMAL_INTERRUPT_TEST();
     begin
-        #(20* 0);
         // $display("***** T7-T3=0b'00000 ***** at %d", 20_counter);
         // ICW1
         TASK_WRITE_DATA(1'b0, 8'b00011111);
         // ICW2
-        TASK_WRITE_DATA(1'b1, 8'b00000000);
+        TASK_WRITE_DATA(1'b1, 8'b11111111);
         // ICW4
         TASK_WRITE_DATA(1'b1, 8'b00001101);
         // OCW1
-        TASK_WRITE_DATA(1'b1, 8'b00000000);
+        TASK_WRITE_DATA(1'b1, 8'b00000111);
         // OCW3
         TASK_WRITE_DATA(1'b0, 8'b00001000);
+        
+        TASK_READ_DATA(1'b1);
 
         // Interrupt
         TASK_INTERRUPT_REQUEST(8'b00000001);
@@ -330,16 +330,20 @@ reg   [7:0]   data_bus_reg;
     // Test pattern
     //
     initial begin
+
+        read_enable_n = 1'b1;
+        // ICW1
+        
         TASK_INIT();
 
         // $display("******************************** ");
         // $display("***** TEST 8086 INTERRUPT  ***** at %d", 20_counter);
         // $display("******************************** ");
          TASK_8086_NORMAL_INTERRUPT_TEST();
-        // ICW1
-        // TASK_WRITE_DATA(1'b0, 8'b00011111);
+        // // ICW1
+        // // TASK_WRITE_DATA(1'b0, 8'b00011111);
 
-        #(20* 1);
+        // #(20* 1);
         // End of simulation
 `ifdef IVERILOG
         $finish;

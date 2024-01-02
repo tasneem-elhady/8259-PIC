@@ -37,7 +37,7 @@ module top_8259(
     //
     // Data Bus Buffer & Read/Write Control Logic (1)
     //
-    //  wire [7:0]   internal_data_bus;
+      wire [7:0]   internal_data_bus;
     // wire write_initial_command_word_1_reset;
     // wire write_initial_command_word_2_4;
     // wire write_operation_control_word_1;
@@ -47,22 +47,22 @@ module top_8259(
 
 
 
-    // wire    [7:0]    interrupt_request_register;
-    // wire            out_control_logic_data;
-    // wire    [7:0]   control_logic_data;
-    // wire            level_or_edge_triggered_config;
-    //wire            special_fully_nest_config;
-    // wire            enable_read_register;
-    // wire            read_register_isr_or_irr;
-    // wire    [7:0]   interrupt;
-    // wire    [7:0]   highest_level_in_service;
-    // wire    [7:0]   interrupt_mask;
-    // wire    [7:0]   interrupt_special_mask;
-    // wire    [7:0]   end_of_interrupt;
-    // wire    [2:0]   priority_rotate;
-    // //wire            freeze
-    // wire            latch_in_service;
-    // wire     [7:0]   clear_interrupt_request_reg;
+    wire    [7:0]    interrupt_request_register;
+    wire            out_control_logic_data;
+    wire    [7:0]   control_logic_data;
+    wire            level_or_edge_triggered_config;
+    wire            special_fully_nest_config;
+    wire            enable_read_register;
+    wire            read_register_isr_or_irr;
+    wire    [7:0]   interrupt;
+    wire    [7:0]   highest_level_in_service;
+    wire    [7:0]   interrupt_mask;
+    wire    [7:0]   interrupt_special_mask;
+    wire    [7:0]   end_of_interrupt;
+    wire    [2:0]   priority_rotate;
+    //wire            freeze
+    wire            latch_in_service;
+    wire     [7:0]   clear_interrupt_request_reg;
 
     Bus_Control_Logic bcl (
         // input
