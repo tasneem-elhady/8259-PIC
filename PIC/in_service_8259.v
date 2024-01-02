@@ -1,114 +1,53 @@
-module in_service_8259 (
-    input clock,
-    input reset,
+module int_req (
+	clock,
+	write_initial_command_word_1_reset,
+	level_or_edge_toriggered_config,
+	freeze,
+	clear_interrupt_request,
+	interrupt_request_pin,
+	interrupt_request_register );
 
-    // Inputs
-    input [2:0] priority_rotate,
-    input [7:0] interrupt_special_mask,
-    input [7:0] interrupt,
-    input latch_in_service,
-    input [7:0] end_of_interrupt,
+	input wire clock;
+	input wire write_initial_command_word_1_reset;
 
-    // Outputs
-    output reg [7:0] in_service_register,
-    output reg [7:0] highest_level_in_service
-);
+	input wire level_or_edge_toriggered_config;
+	input wire freeze;
+	input wire [7:0] clear_interrupt_request;
+	input wire [7:0] interrupt_request_pin;
 
-// functions
-function [7:0] rotate_right (input [7:0] source, input [2:0] rotate);
-    case (rotate)
-        3'b000:  rotate_right = {source[0],   source[7:1]};
-        3'b001:  rotate_right = {source[1:0], source[7:2]};
-        3'b010:  rotate_right = {source[2:0], source[7:3]};
-        3'b011:  rotate_right = {source[3:0], source[7:4]};
-        3'b100:  rotate_right = {source[4:0], source[7:5]};
-        3'b101:  rotate_right = {source[5:0], source[7:6]};
-        3'b110:  rotate_right = {source[6:0], source[7]};
-        3'b111:  rotate_right = source;
-        default: rotate_right = source;  
-    endcase
-endfunction
+	output reg [7:0] interrupt_request_register;
 
+	reg [7:0] low_input_latch;
+	wire [7:0] interrupt_request_edge;
 
-function [7:0] rotate_left (input [7:0] source, input [2:0] rotate);
-    case (rotate)
-        3'b000:  rotate_left = {source[6:0], source[7]};
-        3'b001:  rotate_left = {source[5:0], source[7:6]};
-        3'b010:  rotate_left = {source[4:0], source[7:5]};
-        3'b011:  rotate_left = {source[3:0], source[7:4]};
-        3'b100:  rotate_left = {source[2:0], source[7:3]};
-        3'b101:  rotate_left = {source[1:0], source[7:2]};
-        3'b110:  rotate_left = {source[0],   source[7:1]};
-        3'b111:  rotate_left = source;
-        default: rotate_left = source;  
-    endcase
-endfunction
+	genvar _gv_ir_bit_no_1;
 
-function [7:0] resolv_priority (input [7:0] request);
-    begin
-        if (request[0] == 1'b1) begin
-            resolv_priority = 8'b00000001;
-        end else if (request[1] == 1'b1) begin
-            resolv_priority = 8'b00000010;
-        end else if (request[2] == 1'b1) begin
-            resolv_priority = 8'b00000100;
-        end else if (request[3] == 1'b1) begin
-            resolv_priority = 8'b00001000;
-        end else if (request[4] == 1'b1) begin
-            resolv_priority = 8'b00010000;
-        end else if (request[5] == 1'b1) begin
-            resolv_priority = 8'b00100000;
-        end else if (request[6] == 1'b1) begin
-            resolv_priority = 8'b01000000;
-        end else if (request[7] == 1'b1) begin
-            resolv_priority = 8'b10000000;
-        end else begin
-            resolv_priority = 8'b00000000;
-        end
-    end
-endfunction
+	generate
+		for (_gv_ir_bit_no_1 = 0; _gv_ir_bit_no_1 <= 7; _gv_ir_bit_no_1 = _gv_ir_bit_no_1 + 1) begin : Request_Latch
+			localparam ir_bit_no = _gv_ir_bit_no_1;
+			always @(negedge clock)
+				if (write_initial_command_word_1_reset)
+					low_input_latch[ir_bit_no] <= 1'b0;
+				else if (clear_interrupt_request[ir_bit_no])
+					low_input_latch[ir_bit_no] <= 1'b0;
+				else if (~interrupt_request_pin[ir_bit_no])
+					low_input_latch[ir_bit_no] <= 1'b1;
+				else
+					low_input_latch[ir_bit_no] <= low_input_latch[ir_bit_no];
 
-//////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////
+			assign interrupt_request_edge[ir_bit_no] = (low_input_latch[ir_bit_no] == 1'b1) & (interrupt_request_pin[ir_bit_no] == 1'b1);
 
-    // In service register
-    reg [7:0] next_in_service_register;
-
-always @* begin
-    next_in_service_register = (in_service_register & ~end_of_interrupt) |
-                        (latch_in_service ? interrupt : 8'b00000000);
-end
-
-
-    always @(negedge clock or posedge reset) begin
-        if (reset) begin
-            in_service_register <= 8'b00000000;
-        end else begin
-            in_service_register <= next_in_service_register;
-        end
-    end
-
-    // Get Highest level in service
-    reg [7:0] next_highest_level_in_service;
-
-
-    always @(*) begin
-        next_highest_level_in_service = next_in_service_register & ~interrupt_special_mask;
-        next_highest_level_in_service = rotate_right(next_highest_level_in_service, priority_rotate);
-        next_highest_level_in_service = resolv_priority(next_highest_level_in_service);
-        next_highest_level_in_service = rotate_left(next_highest_level_in_service, priority_rotate);
-    end
-
-
-
-    always @(negedge clock or posedge reset) begin
-        if (reset) begin
-            highest_level_in_service <= 8'b00000000;
-        end else begin
-            highest_level_in_service <= next_highest_level_in_service;
-        end
-    end
-
+			always @(negedge clock)
+				if (write_initial_command_word_1_reset)
+					interrupt_request_register[ir_bit_no] <= 1'b0;
+				else if (clear_interrupt_request[ir_bit_no])
+					interrupt_request_register[ir_bit_no] <= 1'b0;
+				else if (freeze)
+					interrupt_request_register[ir_bit_no] <= interrupt_request_register[ir_bit_no];
+				else if (level_or_edge_toriggered_config)
+					interrupt_request_register[ir_bit_no] <= interrupt_request_pin[ir_bit_no];
+				else
+					interrupt_request_register[ir_bit_no] <= interrupt_request_edge[ir_bit_no];
+		end
+	endgenerate
 endmodule
-
-
