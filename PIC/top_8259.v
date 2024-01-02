@@ -60,10 +60,11 @@ module top_8259(
     wire    [7:0]   interrupt_special_mask;
     wire    [7:0]   end_of_interrupt;
     wire    [2:0]   priority_rotate;
+    wire    [7:0]   acknowledge_interrupt;
     //wire            freeze
     wire            latch_in_service;
     wire     [7:0]   clear_interrupt_request_reg;
-
+    wire  [1:0]     control_state;
     Bus_Control_Logic bcl (
         // input
         // Bus
@@ -121,8 +122,8 @@ module top_8259(
 //inputs from cascading block
          .cascade_slave                      (cascade_slave),
          .cascade_slave_enable               (cascade_slave_enable),
-         .cascade_output_ack_2_3             (cascade_output_ack_2_3),
-
+         .cascade_output_ack_2               (cascade_output_ack_2),
+         .write_initial_command_word_3       (write_initial_command_word_3),
         // External input/output
         // .cascade_in                         (cascade_in),
         // .cascade_out                        (cascade_out),
@@ -152,10 +153,11 @@ module top_8259(
         .out_control_logic_data             (out_control_logic_data),
         .control_logic_data                 (control_logic_data),
         // .data_bus_io                        (data_bus_io),
-
+        .single_or_cascade_config            (single_or_cascade_config),
 // inout
 // Internal bus
-        
+        .acknowledge_interrupt              (acknowledge_interrupt),
+        .control_state                      (control_state),
         .internal_data_bus                  (internal_data_bus)
     );
 
@@ -165,14 +167,11 @@ module top_8259(
         .slave_program_n                                 (slave_program_n),
         .internal_data_bus                               (internal_data_bus),
         .write_initial_command_word_3                    (write_initial_command_word_3),
-        .write_initial_command_word_4                    (write_initial_command_word_4),
         .acknowledge_interrupt                           (acknowledge_interrupt),
         .control_state                                   (control_state),
         .single_or_cascade_config                        (single_or_cascade_config),
-        .slave_program_or_enable_buffer                  (slave_program_or_enable_buffer),
 
-
-        .cascade_output_ack_2_3                          (cascade_output_ack_2_3),
+        .cascade_output_ack_2                          (cascade_output_ack_2),
         .cascade_slave                                   (cascade_slave),
         .cascade_slave_enable                            (cascade_slave_enable),
         .cascade_inout                                   (cascade_inout)
