@@ -10,8 +10,9 @@ module controller (
     input         interrupt_acknowledge_n,
     input         cascade_slave,
     input         cascade_slave_enable,
-    input         cascade_output_ack_2_3,
+    input         cascade_output_ack_2,
 
+    output wire   write_initial_command_word_3,
     output reg level_or_edge_triggered_config,
     output reg[7:0] end_of_interrupt,
     output reg[2:0] priority_rotate,
@@ -22,9 +23,11 @@ module controller (
     output reg      freeze,
     output reg[7:0] clear_interrupt_request,
     output reg      latch_in_service,
-    output reg            out_control_logic_data,
+    output reg          out_control_logic_data,
     output reg  [7:0]   control_logic_data,
-
+    output reg  [7:0] acknowledge_interrupt,
+    output reg  [1:0] control_state,
+    output reg  single_or_cascade_config,
     // output reg           data_bus_io,
 
 
@@ -37,12 +40,12 @@ common c();
 
   
 //registers
-    reg single_or_cascade_config;
+    // reg single_or_cascade_config;
     reg set_icw4_config;
     reg auto_eoi_config; 
     reg auto_rotate_mode;
     // reg [7:0] cascade_device_config;
-    reg [7:0] acknowledge_interrupt;
+    // reg [7:0] acknowledge_interrupt;
 
 //State machine that write ICWs
     reg [1:0] next_command_state;
@@ -54,50 +57,51 @@ common c();
     localparam WRITE_ICW4 = 2'b11;
 
 
+
     always @(*) begin
         if (write_initial_command_word_1_reset == 1'b1)
-            next_command_state <= WRITE_ICW2;
+            next_command_state = WRITE_ICW2;
         else if (write_initial_command_word_2_4 == 1'b1) begin
             case (command_state)
                 WRITE_ICW2: begin
-                   if (single_or_cascade_config == 1'b0)
-                      next_command_state = WRITE_ICW3;
-                  else if (set_icw4_config == 1'b1)
+                //    if (single_or_cascade_config == 1'b0)
+                //       next_command_state = WRITE_ICW3;
+                //   else 
+                  if (set_icw4_config == 1'b1)
                       next_command_state = WRITE_ICW4;
                    else
-                        next_command_state <= CMD_READY;
+                        next_command_state = CMD_READY;
                 end
                 WRITE_ICW3: begin
                    if (set_icw4_config == 1'b1)
                        next_command_state = WRITE_ICW4;
                    else
-                        next_command_state <= CMD_READY;
+                        next_command_state = CMD_READY;
                 end
                 WRITE_ICW4: begin
-                    next_command_state <= CMD_READY;
+                    next_command_state = CMD_READY;
                 end
                 default: begin
-                    next_command_state <= CMD_READY;
+                    command_state = CMD_READY;
                 end
             endcase
         end
         else
-            next_command_state <= command_state;
+            next_command_state = next_command_state;
     end
 
-    always@(*) /*@(negedge clk*)*/   begin
-            command_state <= next_command_state;
+    always@(posedge write_initial_command_word_2_4) /@(negedge clk)*/   begin
+            command_state = next_command_state;
     end
 
  //   Writing registers/command signals
     wire    write_initial_command_word_2 = (command_state == WRITE_ICW2) & write_initial_command_word_2_4;
-    wire    write_initial_command_word_3 = (command_state == WRITE_ICW3) & write_initial_command_word_2_4;
+    assign  write_initial_command_word_3 = (command_state == WRITE_ICW3) & write_initial_command_word_2_4;
     wire    write_initial_command_word_4 = (command_state == WRITE_ICW4) & write_initial_command_word_2_4;
     wire    write_operation_control_word_1_registers = (command_state == CMD_READY) & write_operation_control_word_1;
-    wire    write_operation_control_word_2_registers = (command_state == CMD_READY) & write_operation_control_word_2;
-    wire    write_operation_control_word_3_registers = (command_state == CMD_READY) & write_operation_control_word_3;
+    wire    write_operation_control_word_2_registers = (next_command_state == CMD_READY||(command_state == CMD_READY)) & write_operation_control_word_2;
+    wire    write_operation_control_word_3_registers = (next_command_state == CMD_READY||(command_state == CMD_READY)) & write_operation_control_word_3;
     
-
 
     // LTIM
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
@@ -159,7 +163,7 @@ common c();
     end
 
      // State
-    reg [1:0] control_state;
+    // reg [1:0] control_state;
     reg [1:0] next_control_state;
 
     localparam CTL_READY = 2'b00;
@@ -168,17 +172,19 @@ common c();
 
     // Detect ACK edge
         reg    prev_interrupt_acknowledge_n;
+
         always@(*)/*@(negedge clk,posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset)
             prev_interrupt_acknowledge_n <= 1'b1;
         else
             prev_interrupt_acknowledge_n <= interrupt_acknowledge_n;
     end
+
     wire    nedge_interrupt_acknowledge =  prev_interrupt_acknowledge_n & ~interrupt_acknowledge_n;
     wire    pedge_interrupt_acknowledge = ~prev_interrupt_acknowledge_n &  interrupt_acknowledge_n;
 
     // State machine
-    always@(*) begin
+    always@(/interrupt_acknowledge_n or write_operation_control_word_2_registers/*) begin
         case (control_state)
             CTL_READY: begin
                 //*****
@@ -206,7 +212,7 @@ common c();
             end
         endcase
     end
-    always@(*)/*@(negedge clk,posedge write_initial_command_word_1_reset)*/ begin
+    always@(/interrupt_acknowledge_n or write_initial_command_word_1_reset/*)/*@(negedge clk,posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             control_state <= CTL_READY;
         else
@@ -240,6 +246,7 @@ common c();
         else
             interrupt_mask <= interrupt_mask;
     end
+    
 // Operation control word 2
     //
     // End of interrupt
@@ -251,7 +258,7 @@ common c();
         else if (write_operation_control_word_2 == 1'b1) begin
             case (internal_data_bus[6:5])//*******
                 2'b01:   end_of_interrupt = highest_level_in_service;
-                2'b11:   end_of_interrupt = c.num2bit(internal_data_bus[2:0]);/*****num**/
+                2'b11:   end_of_interrupt = c.num2bit(internal_data_bus[2:0]);/****num*/
                 default: end_of_interrupt = 8'b00000000;
             endcase
         end
@@ -353,6 +360,7 @@ common c();
     
      // interrupt buffer
     reg  [7:0]   interrupt_when_ack1;
+
     always@(*) /*@(negedge clk, posedge write_initial_command_word_1_reset)*/ begin
         if (write_initial_command_word_1_reset == 1'b1)
             interrupt_when_ack1 <= 8'b00000000;
@@ -388,7 +396,7 @@ common c();
                     // end
                 end
                 ACK2: begin
-                    if (cascade_output_ack_2_3 == 1'b1) begin
+                    if (cascade_output_ack_2 == 1'b1) begin
                         out_control_logic_data = 1'b1;
                         if (cascade_slave == 1'b1)
                             control_logic_data[2:0] = c.bit2num(interrupt_when_ack1);
