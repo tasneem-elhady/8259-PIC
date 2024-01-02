@@ -90,7 +90,7 @@ common c();
             next_command_state = next_command_state;
     end
 
-    always@(posedge write_initial_command_word_2_4) /@(negedge clk)*/   begin
+    always@(posedge write_initial_command_word_2_4) /*@(negedge clk)*/   begin
             command_state = next_command_state;
     end
 
