@@ -1,13 +1,13 @@
 
 module PriorityResolver (
     // Inputs from control logic
-    input   reg    [2:0]   priority_rotate,
-    input   reg    [7:0]   interrupt_mask,
-    input   reg    [7:0]   highest_level_in_service,
+    input       [2:0]   priority_rotate,
+    input       [7:0]   interrupt_mask,
+    input       [7:0]   highest_level_in_service,
 
     // Inputs
-    input   reg    [7:0]   interrupt_request_register,
-    input   reg    [7:0]   in_service_register,
+    input       [7:0]   interrupt_request_register,
+    input       [7:0]   in_service_register,
 
     // Outputs
     output  reg    [7:0]   interrupt
