@@ -29,7 +29,7 @@ assign cascade_output_ack_2_3 = cascade_output_ack_2_3reg;
 
 
        // S7-S0 (MASTER) or ID2-ID0 (SLAVE)
-    always@(negedge clock) begin
+    always@(*) begin
         
         if (write_initial_command_word_1_reset == 1'b1)
             cascade_device_config <= 8'b00000000;
