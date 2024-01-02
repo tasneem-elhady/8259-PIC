@@ -10,7 +10,7 @@ module cascading_block(
 
     output    reg        cascade_output_ack_2,
     output    reg        cascade_slave,
-    /*****************//*/*//*/*//*add to repo/*//*/*//*//*/
+   
     output    reg     cascade_slave_enable,
    
     inout     [2:0]   cascade_inout
@@ -74,7 +74,7 @@ common c();
         else if (cascade_slave_enable == 1'b1)
             cascade_output_ack_2  = 1'b1;
 
-        else if ((cascade_slave == 1'b0) && (interrupt_from_slave_device == 1'b0))//**********
+        else if ((cascade_slave == 1'b0) && (interrupt_from_slave_device == 1'b0))//***
             cascade_output_ack_2  = 1'b1;
         else
             cascade_output_ack_2 = 1'b0;
@@ -83,6 +83,10 @@ common c();
     reg cascade_outreg ;
     localparam ACK1 = 2'b01;
     localparam ACK2 = 2'b10;
+
+
+
+    
     // Output slave id
     always@(*) begin
         if (cascade_slave == 1'b1)//m
