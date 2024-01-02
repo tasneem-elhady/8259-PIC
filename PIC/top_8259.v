@@ -18,7 +18,7 @@ module top_8259(
     // input      [2:0]   cascade_in,
     // output     [2:0]   cascade_out,
 
-    output               cascade_io,
+    // output               cascade_io,
 
     inout         [2:0]   cascade_inout,
 
@@ -175,8 +175,8 @@ module top_8259(
         .cascade_output_ack_2_3                          (cascade_output_ack_2_3),
         .cascade_slave                                   (cascade_slave),
         .cascade_slave_enable                            (cascade_slave_enable),
-        .cascade_inout                                   (cascade_inout),
-        .cascade_io                                      (cascade_io)
+        .cascade_inout                                   (cascade_inout)
+        // .cascade_io                                      (cascade_io)
     );
 
     wire   [7:0]   in_service_register;
