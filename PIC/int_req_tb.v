@@ -3,20 +3,20 @@
 module int_req_tb;
 
 	reg clock;
-	reg reset;
+	reg write_initial_command_word_1_reset;
 	
 	initial clock = 1'b1;
 	always #(10) clock = ~clock;
 	
 	initial begin
-		reset = 1'b1;
-		#(200) reset = 1'b0;
+		write_initial_command_word_1_reset = 1'b1;
+		#(200) write_initial_command_word_1_reset = 1'b0;
 	end
 
 	reg [31:0] tb_cycle_counter;
 
-	always @(negedge clock or posedge reset)
-		if (reset)
+	always @(negedge clock)
+		if (write_initial_command_word_1_reset)
 			tb_cycle_counter <= 32'h00000000;
 		else
 			tb_cycle_counter <= tb_cycle_counter + 32'h00000001;
