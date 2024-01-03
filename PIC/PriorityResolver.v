@@ -3,8 +3,7 @@ module PriorityResolver (
     // Inputs from control logic
     input       [2:0]   priority_rotate,
     input       [7:0]   interrupt_mask,
-    input       [7:0]   highest_level_in_service,
-
+    
     // Inputs
     input       [7:0]   interrupt_request_register,
     input       [7:0]   in_service_register,
@@ -18,10 +17,9 @@ module PriorityResolver (
     // Masked flags
     //
     reg     [7:0]   masked_interrupt_request;
-    reg    [7:0]   masked_in_service;
+    
     
     always @* begin
-     masked_in_service        = in_service_register& (~interrupt_mask) ;
      masked_interrupt_request = interrupt_request_register & (~interrupt_mask);
     end
 
@@ -37,14 +35,10 @@ module PriorityResolver (
 
     always @* begin
         rotated_request = c.rotate_right(masked_interrupt_request, priority_rotate);
-
-      
     end
 
     always @* begin
-        rotated_in_service = c.rotate_right(masked_in_service, priority_rotate);
-
-        
+        rotated_in_service = c.rotate_right(in_service_register, priority_rotate);
     end
 
         always @* begin
