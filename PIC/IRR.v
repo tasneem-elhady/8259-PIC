@@ -23,7 +23,7 @@ module Interrupt_Request (
         integer ir_bit_no;
 
 
-        always@(*) /*@(posedge clock or posedge write_initial_command_word_1_reset)*/ begin
+        always@(*)  begin
         for (ir_bit_no = 0; ir_bit_no < 8; ir_bit_no = ir_bit_no + 1) begin
         if (write_initial_command_word_1_reset) begin
         low_input_latch = 8'b0;
