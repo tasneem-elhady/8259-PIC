@@ -1,6 +1,6 @@
 // Code your design here
 module Interrupt_Request (
-        // input  wire  clock,
+       
         input  wire  write_initial_command_word_1_reset,
         // Inputs from control logic
         input  level_triggered_config,
